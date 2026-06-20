@@ -1,0 +1,12 @@
+# IDE settings
+.idea/
+*.iml
+
+# Python specific
+__pycache__/
+*.pyc
+venv/
+.env
+
+*.db
+*.txt
