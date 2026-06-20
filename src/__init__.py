@@ -1,8 +1,7 @@
 from flask import Flask
-from flask_migrate import Migrate
 
 from src.config import Config
-from src.extensions import db
+from src.extensions import db, migrate
 
 
 def create_app():
@@ -10,6 +9,6 @@ def create_app():
     app.config.from_object(Config)
 
     db.init_app(app)
-    migrate = Migrate(app, db)
+    migrate.init_app(app, db)
 
     return app
