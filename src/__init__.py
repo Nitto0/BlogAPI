@@ -2,6 +2,7 @@ from flask import Flask
 
 from src.config import Config
 from src.extensions import db, migrate
+from src.models import user, post
 
 
 def create_app():

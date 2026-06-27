@@ -64,6 +64,13 @@ class User(db.Model):
         cascade="all, delete-orphan"
     )
 
+    revoked_tokens = db.relationship(
+        "RevokedToken",
+        backref="user",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
 
