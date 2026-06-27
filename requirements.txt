@@ -1,5 +1,9 @@
 Flask~=3.1.2
 Flask-SQLAlchemy
 Flask-Migrate
+Flask-JWT-Extended
 python-dotenv~=1.2.2
 Werkzeug~=3.1.4
+pydantic~=2.12.5
+alembic~=1.18.4
+SQLAlchemy~=2.0.45

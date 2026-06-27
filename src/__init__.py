@@ -1,7 +1,8 @@
 from flask import Flask
 
 from src.config import Config
-from src.extensions import db, migrate
+from src.extensions import db, migrate, jwt
+from src.models import user, post
 
 
 def create_app():
@@ -10,5 +11,6 @@ def create_app():
 
     db.init_app(app)
     migrate.init_app(app, db)
+    jwt.init_app(app)
 
     return app
