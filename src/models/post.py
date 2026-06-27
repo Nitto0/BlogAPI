@@ -13,21 +13,11 @@ class Post(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    title = db.Column(
-        db.String(200),
-        nullable=False
-    )
+    title = db.Column(db.String(200), nullable=False)
 
-    content = db.Column(
-        db.Text,
-        nullable=False
-    )
+    content = db.Column(db.Text, nullable=False)
 
-    status = db.Column(
-        db.String(20),
-        nullable=False,
-        default="draft"
-    )
+    status = db.Column(db.String(20), nullable=False, default="draft")
 
     created_at = db.Column(
         db.DateTime,
@@ -42,10 +32,7 @@ class Post(db.Model):
         onupdate=db.func.now()
     )
 
-    published_at = db.Column(
-        db.DateTime,
-        nullable=True
-    )
+    published_at = db.Column(db.DateTime, nullable=True)
 
     author_id = db.Column(
         db.Integer,
