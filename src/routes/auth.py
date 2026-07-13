@@ -2,6 +2,8 @@ from flask import request, jsonify
 from pydantic import ValidationError
 from flask import Blueprint
 from flask import current_app
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_refresh_token
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.schemas.user import UserSchema
@@ -33,7 +35,7 @@ def register():
                 "code": "invalid_json",
                 "message": "Incorrect data!"
             }
-        }), 400
+        }), 422
 
     username = data.get('username')
     password = data.get('password')
@@ -41,12 +43,6 @@ def register():
 
     try:
         validate_reg = UserSchema(username=username, password=password, email=email)
-
-        print(f'''
-                Success validation!
-                Username: {validate_reg.username},
-                email: {validate_reg.email}
-            ''')
     except ValidationError:
         return jsonify({
             "error": {
@@ -55,14 +51,28 @@ def register():
             }
         }), 422
 
-    email = email.strip().lower()
-    username = username.strip().lower()
+    email = str(validate_reg.email).strip().lower()
+    username = validate_reg.username.strip().lower()
+    password = str(validate_reg.password)
 
-    existing_user = db.session.execute(
-        db.select(User).where(
-            (User.email == email) | (User.username == username)
+    try:
+        existing_user = db.session.execute(
+            db.select(User).where(
+                (User.email == email) | (User.username == username)
+            )
+        ).scalar_one_or_none()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Database error during checking"
         )
-    ).scalar_one_or_none()
+
+        return jsonify({
+            "error": {
+                "code": "internal_error",
+                "message": "Internal server error"
+            }
+        }), 500
 
     if existing_user:
         if existing_user.email == email:
@@ -108,21 +118,21 @@ def register():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.json
+    data = request.get_json(silent=True)
 
     if not data:
         return jsonify({
             "error": {
-                "code": "",
-                "message": ""
+                "code": "invalid_json",
+                "message": "Incorrect data"
             }
         }), 400
 
     if "email" not in data or "password" not in data:
         return jsonify({
             "error": {
-                "code": "",
-                "message": ""
+                "code": "validation_error",
+                "message": "Email and password are required"
             }
         }), 422
 
@@ -130,36 +140,6 @@ def login():
     password = data.get('password')
 
     email = email.strip().lower()
-
-    login_user = db.session.execute(
-        db.select(User).where(
-            (User.email == email)
-        )
-    ).scalar_one_or_none()
-
-    if login_user is None:
-        return jsonify({
-            "error": {
-                "code": "invalid_credentials",
-                "message": "Invalid email or password!"
-            }
-        }), 401
-
-    if not login_user.check_password(password):
-        return jsonify({
-            "error": {
-                "code": "invalid_credentials",
-                "message": "Invalid email or password!"
-            }
-        }), 401
-
-    if not login_user.is_active:
-        return jsonify({
-            "error": {
-                "code": "account_inactive",
-                "message": "Account is blocked!"
-            }
-        }), 403
 
     try:
         login_user = db.session.execute(
@@ -178,6 +158,36 @@ def login():
             }
         }), 500
 
+    if login_user is None or not login_user.check_password(password):
+        return jsonify({
+            "error": {
+                "code": "invalid_credentials",
+                "message": "Invalid email or password!"
+            }
+        }), 401
+
+    if not login_user.is_active:
+        return jsonify({
+            "error": {
+                "code": "account_inactive",
+                "message": "Account is blocked!"
+            }
+        }), 403
+
+    access_token = create_access_token(
+        identity=str(login_user.id)
+    )
+
+    refresh_token = create_refresh_token(
+        identity=str(login_user.id)
+    )
+
     return jsonify({
-        "message": "success!"
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "user": {
+            "id": login_user.id,
+            "username": login_user.username,
+            "email": login_user.email
+        }
     }), 200
