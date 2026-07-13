@@ -1,4 +1,7 @@
-from pydantic import BaseModel, EmailStr, SecretStr, Field
+from pydantic import BaseModel
+from pydantic import EmailStr
+from pydantic import SecretStr
+from pydantic import Field
 
 
 class UserSchema(BaseModel):

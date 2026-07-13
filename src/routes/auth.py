@@ -7,6 +7,7 @@ from flask_jwt_extended import create_refresh_token
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.schemas.user import UserSchema
+from src.schemas.login import LoginSchema
 from src.models.user import User
 from src.extensions import db
 
@@ -32,7 +33,7 @@ def register():
     if 'username' not in data or 'password' not in data or 'email' not in data:
         return jsonify({
             "error": {
-                "code": "invalid_json",
+                "code": "validation_error",
                 "message": "Incorrect data!"
             }
         }), 422
@@ -141,7 +142,20 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
-    email = email.strip().lower()
+    try:
+        validate_login = LoginSchema(
+            email=email,
+            password=password
+        )
+    except ValidationError:
+        return jsonify({
+            "error": {
+                "code": "validation_error",
+                "message": "Invalid data!"
+            }
+        }), 422
+
+    email = str(validate_login.email).strip().lower()
 
     try:
         login_user = db.session.execute(
