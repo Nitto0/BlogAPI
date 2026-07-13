@@ -1,17 +1,23 @@
-from src import create_app
 from flask import request, jsonify
 from pydantic import ValidationError
+from flask import Blueprint
+from flask import current_app
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.schemas.user import UserSchema
 from src.models.user import User
 from src.extensions import db
 
-app = create_app()
+auth_bp = Blueprint(
+    "auth",
+    __name__,
+    url_prefix="/api/v1/auth"
+)
 
 
-@app.route("/api/v1/auth/register", methods=["POST"])
+@auth_bp.route("/register", methods=["POST"])
 def register():
-    data = request.json
+    data = request.get_json(silent=True)
 
     if not data:
         return jsonify({
@@ -39,7 +45,6 @@ def register():
         print(f'''
                 Success validation!
                 Username: {validate_reg.username},
-                password: {validate_reg.password},
                 email: {validate_reg.email}
             ''')
     except ValidationError:
@@ -79,8 +84,21 @@ def register():
     reg_user = User(username=username, email=email)
     reg_user.set_password(password=password)
 
-    db.session.add(reg_user)
-    db.session.commit()
+    try:
+        db.session.add(reg_user)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Database error during registration"
+        )
+
+        return jsonify({
+            "error": {
+                "code": "internal_error",
+                "message": "Internal server error"
+            }
+        }), 500
 
     return jsonify({
         "username": username,
@@ -88,7 +106,7 @@ def register():
     }), 201
 
 
-@app.route("/api/v1/auth/login")
+@auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
 
@@ -100,7 +118,7 @@ def login():
             }
         }), 400
 
-    if "email" not in data or "username" not in data:
+    if "email" not in data or "password" not in data:
         return jsonify({
             "error": {
                 "code": "",
@@ -122,7 +140,7 @@ def login():
     if login_user is None:
         return jsonify({
             "error": {
-                "code": "invalid_email",
+                "code": "invalid_credentials",
                 "message": "Invalid email or password!"
             }
         }), 401
@@ -130,10 +148,35 @@ def login():
     if not login_user.check_password(password):
         return jsonify({
             "error": {
-                "code": "invalid_password",
+                "code": "invalid_credentials",
                 "message": "Invalid email or password!"
             }
         }), 401
+
+    if not login_user.is_active:
+        return jsonify({
+            "error": {
+                "code": "account_inactive",
+                "message": "Account is blocked!"
+            }
+        }), 403
+
+    try:
+        login_user = db.session.execute(
+            db.select(User).where(User.email == email)
+        ).scalar_one_or_none()
+    except SQLAlchemyError:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Database error during login"
+        )
+
+        return jsonify({
+            "error": {
+                "code": "internal_error",
+                "message": "Internal server error"
+            }
+        }), 500
 
     return jsonify({
         "message": "success!"
