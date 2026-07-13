@@ -2,7 +2,7 @@ from flask import Flask
 
 from src.config import Config
 from src.extensions import db, migrate, jwt
-from src.models import user, post
+from src.models import user, post, revoked_token
 from src.routes.auth import auth_bp
 
 

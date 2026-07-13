@@ -53,7 +53,7 @@ def register():
 
     email = str(validate_reg.email).strip().lower()
     username = validate_reg.username.strip().lower()
-    password = str(validate_reg.password)
+    password = validate_reg.password
 
     try:
         existing_user = db.session.execute(
@@ -92,7 +92,9 @@ def register():
             }), 409
 
     reg_user = User(username=username, email=email)
-    reg_user.set_password(password=password)
+    reg_user.set_password(
+        password=password.get_secret_value()
+    )
 
     try:
         db.session.add(reg_user)
