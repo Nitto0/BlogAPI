@@ -162,6 +162,7 @@ def login():
             }
         }), 422
 
+    password = validate_login.password
     email = str(validate_login.email).strip().lower()
 
     try:

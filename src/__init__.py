@@ -4,6 +4,7 @@ from src.config import Config
 from src.extensions import db, migrate, jwt
 from src.models import user, post, revoked_token
 from src.routes.auth import auth_bp
+from src.utils.jwt_callbacks import register_jwt_callbacks
 
 
 def create_app():
@@ -15,5 +16,6 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    register_jwt_callbacks()
 
     return app
