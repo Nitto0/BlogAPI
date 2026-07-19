@@ -220,7 +220,7 @@ def login():
 @auth_bp.route("/refresh", methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
 
     try:
         user = db.session.execute(
@@ -268,7 +268,7 @@ def refresh():
 @auth_bp.route("/logout", methods=['POST'])
 @jwt_required(refresh=True)
 def logout():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     token_data = get_jwt()
 
     jti = token_data['jti']
